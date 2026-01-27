@@ -7,6 +7,7 @@
 #include <cstring>
 #include <random>
 #include <stack>
+#include <sys/types.h>
 class Chip8{
   public:
   
@@ -29,6 +30,12 @@ class Chip8{
     void OP_1NNN();
     void OP_2NNN();
     void OP_3XNN();
+    void OP_4XNN();
+    void OP_5XY0();
+    void OP_6XNN();
+    void OP_7XNN();
+    void OP_8XY0();
+  
     void LoadRom(const std::string& filename);
 };
   
@@ -67,8 +74,6 @@ void Chip8::OP_00EE()
   pc=stack[sp];
 }
 
-
-
 void Chip8::OP_1NNN()
 {
   uint16_t address =opcode & 0x0FFFu;
@@ -88,13 +93,50 @@ void Chip8::OP_3XNN(){
   uint8_t vx=(opcode & 0x0F00)>>8;
   uint8_t NN =opcode & 0x00FF;
 
-  if(registers[vx]==NN){
+  if(registers[vx]!=NN){
     pc+=4;
   }else{
     pc+=2;
   }
 }
 
+void Chip8::OP_4XNN(){
+  
+  uint8_t vx=(opcode & 0x0F00)>>8;
+  uint8_t NN =opcode & 0x00FF;
+
+  if(registers[vx]==NN)
+    pc+=4;
+  else
+    pc+=2;
+}
+
+void Chip8::OP_5XY0(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  if (registers[x]==registers[y] )
+    pc+=4;
+  else
+    pc+=2;
+}
+
+void Chip8::OP_6XNN(){
+  uint8_t vx=(opcode & 0x0F00)>>8;
+  uint8_t NN =opcode & 0x00FF;
+  registers[vx]=NN;
+}
+
+void Chip8::OP_7XNN(){
+  uint8_t vx=(opcode & 0x0F00)>>8;
+  uint8_t NN =opcode & 0x00FF;
+  registers[vx]+=NN;
+}
+
+void Chip8::OP_8XY0(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  registers[x]=registers[y];
+}
 
 
 
