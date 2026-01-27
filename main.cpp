@@ -35,7 +35,11 @@ class Chip8{
     void OP_6XNN();
     void OP_7XNN();
     void OP_8XY0();
-  
+    void OP_8XY1();
+    void OP_8XY2();
+    void OP_8XY3();
+    void OP_8XY4();
+    void OP_8XY5();
     void LoadRom(const std::string& filename);
 };
   
@@ -136,6 +140,41 @@ void Chip8::OP_8XY0(){
   uint8_t x=(opcode & 0x0F00)>>8;
   uint8_t y=(opcode & 0x00F0)>>4;
   registers[x]=registers[y];
+}
+
+void Chip8::OP_8XY1(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  registers[x]=registers[x] | registers[y];
+}
+
+void Chip8::OP_8XY2(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  registers[x]=registers[x] & registers[y];
+}
+
+void Chip8::OP_8XY3(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  registers[x]=registers[x] ^ registers[y];
+}
+ 
+void Chip8::OP_8XY4(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint16_t sum=registers[x] + registers[y];
+  registers[0xF] = (sum > 255);
+  registers[x] = sum & 0xFF;
+}
+
+
+void Chip8::OP_8XY5(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint16_t diff=registers[x] - registers[y];
+  registers[0xF] = (registers[x] > registers[y]);
+  registers[x] = diff & 0xFF;
 }
 
 
