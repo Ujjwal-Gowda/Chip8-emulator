@@ -3,9 +3,16 @@
 #include <ios>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <cstring>
+#include <random>
+#include <stack>
 class Chip8{
   public:
-    Chip8();
+  
+  Chip8();
+	std::default_random_engine randGen;
+	std::uniform_int_distribution<uint8_t> randByte;
     std::uint8_t registers[16]{};
     std::uint8_t memory[4096]{};
     std::uint16_t index{};
@@ -17,11 +24,14 @@ class Chip8{
     std::uint8_t soundtimer{};
     std::uint32_t video[64*32]{};
     std::uint16_t opcode;
-    
+    void OP_00E0();
+    void OP_00EE();
+    void OP_1NNN();
+    void OP_2NNN();
+    void OP_3XNN();
     void LoadRom(const std::string& filename);
 };
   
-
 void Chip8::LoadRom(const std::string& filename)
 {
   std::ifstream file(filename , std::ios::binary | std::ios::ate);
@@ -38,9 +48,54 @@ void Chip8::LoadRom(const std::string& filename)
   file.read(reinterpret_cast<char*>(&memory[0x200]), size);
 }
 
-Chip8::Chip8(){
-  pc=0x200;
+Chip8::Chip8()
+    : randGen(std::chrono::system_clock::now().time_since_epoch().count()),
+      randByte(0, 255),
+      pc(0x200)
+{
 }
+
+void Chip8::OP_00E0()
+{
+  memset(video,0,sizeof(video));
+}
+
+
+void Chip8::OP_00EE()
+{
+  --sp;
+  pc=stack[sp];
+}
+
+
+
+void Chip8::OP_1NNN()
+{
+  uint16_t address =opcode & 0x0FFFu;
+  pc=address;
+}
+
+void Chip8::OP_2NNN()
+{
+  uint16_t address =opcode & 0x0FFFu;
+  stack[sp]=pc;
+  ++sp;
+  pc=address;
+}
+
+void Chip8::OP_3XNN(){
+  
+  uint8_t vx=(opcode & 0x0F00)>>8;
+  uint8_t NN =opcode & 0x00FF;
+
+  if(registers[vx]==NN){
+    pc+=4;
+  }else{
+    pc+=2;
+  }
+}
+
+
 
 
 const unsigned int FONTSET_SIZE = 80;
