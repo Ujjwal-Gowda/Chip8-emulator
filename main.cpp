@@ -40,6 +40,11 @@ class Chip8{
     void OP_8XY3();
     void OP_8XY4();
     void OP_8XY5();
+    void OP_8XY6();
+    void OP_8XY7();
+    void OP_8XYE();
+    void OP_9XY0();
+    void OP_ANNN();
     void LoadRom(const std::string& filename);
 };
   
@@ -177,6 +182,45 @@ void Chip8::OP_8XY5(){
   registers[x] = diff & 0xFF;
 }
 
+void Chip8::OP_8XY6(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint8_t LSB=registers[y] & 1;
+  registers[0xF] = LSB;
+  registers[x] =   (registers[y] >> 1) ;
+}
+
+void Chip8::OP_8XY7(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint16_t diff=registers[y] - registers[x];
+  registers[0xF] = (registers[y] > registers[x]);
+  registers[x] = diff & 0xFF;
+}
+
+void Chip8::OP_8XYE(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint8_t MSB=(registers[y] >>7) & 1;
+  registers[0xF] = MSB;
+  registers[x] =   (registers[y] << 1) ;
+}
+
+void Chip8::OP_9XY0(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+
+  if(registers[x]!=registers[y])
+    pc+=4;
+  else
+    pc+=2;
+}
+
+void Chip8::OP_ANNN(){
+
+  uint16_t NNN=opcode & 0x0FFF;
+  index=NNN;
+}
 
 
 const unsigned int FONTSET_SIZE = 80;
