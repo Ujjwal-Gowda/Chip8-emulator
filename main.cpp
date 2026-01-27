@@ -45,6 +45,9 @@ class Chip8{
     void OP_8XYE();
     void OP_9XY0();
     void OP_ANNN();
+    void OP_BNNN();
+    void OP_CXNN();
+    void OP_DXYN();
     void LoadRom(const std::string& filename);
 };
   
@@ -217,10 +220,55 @@ void Chip8::OP_9XY0(){
 }
 
 void Chip8::OP_ANNN(){
-
   uint16_t NNN=opcode & 0x0FFF;
   index=NNN;
 }
+
+
+void Chip8::OP_BNNN(){
+  uint16_t NNN=opcode & 0x0FFF;
+  pc= NNN +registers[0];
+}
+
+
+void Chip8::OP_CXNN(){
+  uint16_t NN=opcode & 0x00FF;
+  u_int8_t x=(opcode & 0x0F00)>>8;
+  registers[x]=randByte(randGen) & NN ;
+}
+
+
+void Chip8::OP_DXYN(){
+
+  uint8_t x=(opcode & 0x0F00)>>8;
+  uint8_t y=(opcode & 0x00F0)>>4;
+  uint8_t N=opcode & 0x000F;
+  uint8_t vx=registers[x];
+  uint8_t vy=registers[y];
+  uint16_t I =index;
+
+        registers[0xF]=0;
+  for(int  row=0;row<N;row++){
+    uint8_t spriteByte=memory[I+row];
+    for(int col =0;col<8;col++){
+      uint8_t colbit=(spriteByte & (0x80>>col));
+        if (spriteByte & (0x80 >> col))
+            {
+                uint8_t px = (vx + col) % 64;
+                uint8_t py = (vy + row) % 32;
+                uint32_t pixelIndex = py * 64 + px;
+
+                if (video[pixelIndex] == 1)
+                    registers[0xF] = 1;
+
+                video[pixelIndex] ^= 1;
+           
+            }
+    }
+  }
+}
+
+
 
 
 const unsigned int FONTSET_SIZE = 80;
