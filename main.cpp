@@ -6,7 +6,6 @@
 #include <chrono>
 #include <cstring>
 #include <random>
-#include <stack>
 #include <sys/types.h>
 class Chip8{
   public:
@@ -48,6 +47,10 @@ class Chip8{
     void OP_BNNN();
     void OP_CXNN();
     void OP_DXYN();
+    void OP_EX9E();
+    void OP_EXA1();
+    void OP_FX07();
+    void OP_FX0A();
     void LoadRom(const std::string& filename);
 };
   
@@ -268,6 +271,103 @@ void Chip8::OP_DXYN(){
   }
 }
 
+void Chip8::OP_EX9E(){
+  uint8_t x = (opcode & 0x0F00)>>8;
+  uint8_t key = registers[x] & 0x0F;
+  if(keypad[key]){
+    pc+=4;
+  }else{
+    pc+=2;
+  }
+}
+
+void Chip8::OP_EXA1(){
+  uint8_t x = (opcode & 0x0F00)>>8;
+  uint8_t key = registers[x] & 0x0F;
+  if(!keypad[key]){
+    pc+=4;
+  }else{
+    pc+=2;
+  }
+}
+
+void Chip8::OP_FX07(){
+  uint8_t x=(opcode & 0x0F00)>>8;
+  registers[x]=delaytimer;
+}
+
+void Chip8::OP_FX0A(){
+  uint8_t Vx = (opcode & 0x0F00u) >> 8u;
+
+	if (keypad[0])
+	{
+		registers[Vx] = 0;
+	}
+	else if (keypad[1])
+	{
+		registers[Vx] = 1;
+	}
+	else if (keypad[2])
+	{
+		registers[Vx] = 2;
+	}
+	else if (keypad[3])
+	{
+		registers[Vx] = 3;
+	}
+	else if (keypad[4])
+	{
+		registers[Vx] = 4;
+	}
+	else if (keypad[5])
+	{
+		registers[Vx] = 5;
+	}
+	else if (keypad[6])
+	{
+		registers[Vx] = 6;
+	}
+	else if (keypad[7])
+	{
+		registers[Vx] = 7;
+	}
+	else if (keypad[8])
+	{
+		registers[Vx] = 8;
+	}
+	else if (keypad[9])
+	{
+		registers[Vx] = 9;
+	}
+	else if (keypad[10])
+	{
+		registers[Vx] = 10;
+	}
+	else if (keypad[11])
+	{
+		registers[Vx] = 11;
+	}
+	else if (keypad[12])
+	{
+		registers[Vx] = 12;
+	}
+	else if (keypad[13])
+	{
+		registers[Vx] = 13;
+	}
+	else if (keypad[14])
+	{
+		registers[Vx] = 14;
+	}
+	else if (keypad[15])
+	{
+		registers[Vx] = 15;
+	}
+	else
+	{
+		pc -= 2;
+	}
+}
 
 
 
