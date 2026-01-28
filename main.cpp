@@ -9,6 +9,8 @@
 #include <random>
 #include <sys/types.h>
 #include <cmath>
+#include <thread>
+#include <SDL2/SDL.h>
 class Chip8{
   public:
   
@@ -26,6 +28,8 @@ class Chip8{
     std::uint8_t soundtimer{};
     std::uint32_t video[64*32]{};
     std::uint16_t opcode;
+    void updateTimer();
+    void cycle();
     void OP_00E0();
     void OP_00EE();
     void OP_1NNN();
@@ -438,7 +442,7 @@ void Chip8::OP_FX33(){
 
 void Chip8::OP_FX55(){
   uint8_t x= (opcode & 0x0F00)>>8;
-  for(int i =0 ;i<x;i++){
+  for(int i =0 ;i<=x;i++){
     memory[index+i]=registers[i];
   }
 }
@@ -450,10 +454,196 @@ void Chip8::OP_FX65(){
   }
 }
 
-int main () {
-  Chip8 chip8;
-  chip8.LoadRom("../Chip-8/games/TETRIS");
-
-  return 0;
+void Chip8::updateTimer(){
+  if(delaytimer>0){
+    --delaytimer;
+  }
+  if(soundtimer>0){
+    --soundtimer;
+  }
 }
 
+
+void drawScreen(SDL_Renderer* renderer, uint32_t* video)
+{
+    const int SCALE = 10;
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+    for (int y = 0; y < 32; y++)
+    {
+        for (int x = 0; x < 64; x++)
+        {
+            if (video[y * 64 + x])
+            {
+                SDL_Rect pixel;
+                pixel.x = x * SCALE;
+                pixel.y = y * SCALE;
+                pixel.w = SCALE;
+                pixel.h = SCALE;
+
+                SDL_RenderFillRect(renderer, &pixel);
+            }
+        }
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+void Chip8::cycle()
+{
+    opcode = (memory[pc] << 8u) | memory[pc + 1];
+
+    pc += 2;
+
+    switch (opcode & 0xF000)
+    {
+        case 0x0000:
+            switch (opcode & 0x00FF)
+            {
+                case 0x00E0: OP_00E0(); break;
+                case 0x00EE: OP_00EE(); break;
+            }
+            break;
+
+        case 0x1000: OP_1NNN(); break;
+        case 0x2000: OP_2NNN(); break;
+        case 0x3000: OP_3XNN(); break;
+        case 0x4000: OP_4XNN(); break;
+        case 0x5000: OP_5XY0(); break;
+        case 0x6000: OP_6XNN(); break;
+        case 0x7000: OP_7XNN(); break;
+
+        case 0x8000:
+            switch (opcode & 0x000F)
+            {
+                case 0x0: OP_8XY0(); break;
+                case 0x1: OP_8XY1(); break;
+                case 0x2: OP_8XY2(); break;
+                case 0x3: OP_8XY3(); break;
+                case 0x4: OP_8XY4(); break;
+                case 0x5: OP_8XY5(); break;
+                case 0x6: OP_8XY6(); break;
+                case 0x7: OP_8XY7(); break;
+                case 0xE: OP_8XYE(); break;
+            }
+            break;
+
+        case 0x9000: OP_9XY0(); break;
+        case 0xA000: OP_ANNN(); break;
+        case 0xB000: OP_BNNN(); break;
+        case 0xC000: OP_CXNN(); break;
+        case 0xD000: OP_DXYN(); break;
+
+        case 0xE000:
+            switch (opcode & 0x00FF)
+            {
+                case 0x9E: OP_EX9E(); break;
+                case 0xA1: OP_EXA1(); break;
+            }
+            break;
+
+        case 0xF000:
+            switch (opcode & 0x00FF)
+            {
+                case 0x07: OP_FX07(); break;
+                case 0x0A: OP_FX0A(); break;
+                case 0x15: OP_FX15(); break;
+                case 0x18: OP_FX18(); break;
+                case 0x1E: OP_FX1E(); break;
+                case 0x29: OP_FX29(); break;
+                case 0x33: OP_FX33(); break;
+                case 0x55: OP_FX55(); break;
+                case 0x65: OP_FX65(); break;
+            }
+            break;
+    }
+}
+
+
+int main()
+{
+    Chip8 chip8;
+    chip8.LoadRom("../Chip-8/games/TETRIS");
+
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        std::cout << "SDL failed: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow(
+        "CHIP-8",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        64 * 10,
+        32 * 10,
+        SDL_WINDOW_SHOWN
+    );
+
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    bool running = true;
+    auto lastTimer = std::chrono::high_resolution_clock::now();
+
+
+while (running)
+{
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        if (event.type == SDL_QUIT)
+            running = false;
+
+        if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+        {
+            bool pressed = (event.type == SDL_KEYDOWN);
+
+            switch (event.key.keysym.sym)
+            {
+                case SDLK_1: chip8.keypad[0x1] = pressed; break;
+                case SDLK_2: chip8.keypad[0x2] = pressed; break;
+                case SDLK_3: chip8.keypad[0x3] = pressed; break;
+                case SDLK_4: chip8.keypad[0xC] = pressed; break;
+
+                case SDLK_q: chip8.keypad[0x4] = pressed; break;
+                case SDLK_w: chip8.keypad[0x5] = pressed; break;
+                case SDLK_e: chip8.keypad[0x6] = pressed; break;
+                case SDLK_r: chip8.keypad[0xD] = pressed; break;
+
+                case SDLK_a: chip8.keypad[0x7] = pressed; break;
+                case SDLK_s: chip8.keypad[0x8] = pressed; break;
+                case SDLK_d: chip8.keypad[0x9] = pressed; break;
+                case SDLK_f: chip8.keypad[0xE] = pressed; break;
+
+                case SDLK_z: chip8.keypad[0xA] = pressed; break;
+                case SDLK_x: chip8.keypad[0x0] = pressed; break;
+                case SDLK_c: chip8.keypad[0xB] = pressed; break;
+                case SDLK_v: chip8.keypad[0xF] = pressed; break;
+            }
+        }
+    }
+
+    chip8.cycle();
+    drawScreen(renderer, chip8.video);
+
+
+        // 🔹 TIMERS (60Hz)
+        auto now = std::chrono::high_resolution_clock::now();
+        if (std::chrono::duration<double>(now - lastTimer).count() >= 1.0 / 60.0)
+        {
+            chip8.updateTimer();
+            lastTimer = now;
+        }
+
+        SDL_Delay(1);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
+}
