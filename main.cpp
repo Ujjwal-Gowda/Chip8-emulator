@@ -146,9 +146,7 @@ void Chip8::OP_3XNN(){
   uint8_t vx=(opcode & 0x0F00)>>8;
   uint8_t NN =opcode & 0x00FF;
 
-  if(registers[vx]!=NN){
-    pc+=4;
-  }else{
+  if(registers[vx]==NN){
     pc+=2;
   }
 }
@@ -158,9 +156,7 @@ void Chip8::OP_4XNN(){
   uint8_t vx=(opcode & 0x0F00)>>8;
   uint8_t NN =opcode & 0x00FF;
 
-  if(registers[vx]==NN)
-    pc+=4;
-  else
+  if(registers[vx]!=NN)
     pc+=2;
 }
 
@@ -168,8 +164,6 @@ void Chip8::OP_5XY0(){
   uint8_t x=(opcode & 0x0F00)>>8;
   uint8_t y=(opcode & 0x00F0)>>4;
   if (registers[x]==registers[y] )
-    pc+=4;
-  else
     pc+=2;
 }
 
@@ -255,8 +249,6 @@ void Chip8::OP_9XY0(){
   uint8_t y=(opcode & 0x00F0)>>4;
 
   if(registers[x]!=registers[y])
-    pc+=4;
-  else
     pc+=2;
 }
 
@@ -313,8 +305,6 @@ void Chip8::OP_EX9E(){
   uint8_t x = (opcode & 0x0F00)>>8;
   uint8_t key = registers[x] & 0x0F;
   if(keypad[key]){
-    pc+=4;
-  }else{
     pc+=2;
   }
 }
@@ -323,8 +313,6 @@ void Chip8::OP_EXA1(){
   uint8_t x = (opcode & 0x0F00)>>8;
   uint8_t key = registers[x] & 0x0F;
   if(!keypad[key]){
-    pc+=4;
-  }else{
     pc+=2;
   }
 }
@@ -336,75 +324,18 @@ void Chip8::OP_FX07(){
 
 void Chip8::OP_FX0A(){
   uint8_t Vx = (opcode & 0x0F00u) >> 8u;
-
-	if (keypad[0])
-	{
-		registers[Vx] = 0;
-	}
-	else if (keypad[1])
-	{
-		registers[Vx] = 1;
-	}
-	else if (keypad[2])
-	{
-		registers[Vx] = 2;
-	}
-	else if (keypad[3])
-	{
-		registers[Vx] = 3;
-	}
-	else if (keypad[4])
-	{
-		registers[Vx] = 4;
-	}
-	else if (keypad[5])
-	{
-		registers[Vx] = 5;
-	}
-	else if (keypad[6])
-	{
-		registers[Vx] = 6;
-	}
-	else if (keypad[7])
-	{
-		registers[Vx] = 7;
-	}
-	else if (keypad[8])
-	{
-		registers[Vx] = 8;
-	}
-	else if (keypad[9])
-	{
-		registers[Vx] = 9;
-	}
-	else if (keypad[10])
-	{
-		registers[Vx] = 10;
-	}
-	else if (keypad[11])
-	{
-		registers[Vx] = 11;
-	}
-	else if (keypad[12])
-	{
-		registers[Vx] = 12;
-	}
-	else if (keypad[13])
-	{
-		registers[Vx] = 13;
-	}
-	else if (keypad[14])
-	{
-		registers[Vx] = 14;
-	}
-	else if (keypad[15])
-	{
-		registers[Vx] = 15;
-	}
-	else
-	{
-		pc -= 2;
-	}
+  bool keyPressed = false;
+  
+  for(int i = 0; i < 16; i++){
+    if(keypad[i]){
+      registers[Vx] = i;
+      keyPressed = true;
+      break;
+    }
+  }
+  if(!keyPressed){
+    pc -= 2;  // Repeat this instruction
+  }
 }
 
 void Chip8::OP_FX15(){
@@ -466,7 +397,7 @@ void Chip8::updateTimer(){
 
 void drawScreen(SDL_Renderer* renderer, uint32_t* video)
 {
-    const int SCALE = 10;
+    const int SCALE = 20;
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -579,8 +510,8 @@ int main()
         "CHIP-8",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        64 * 10,
-        32 * 10,
+        64 * 20,
+        32 * 20,
         SDL_WINDOW_SHOWN
     );
 
@@ -590,11 +521,12 @@ int main()
     auto lastTimer = std::chrono::high_resolution_clock::now();
 
 
-while (running)
-{
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
+    while (running)
     {
+
+      SDL_Event event;
+      while (SDL_PollEvent(&event))
+      {
         if (event.type == SDL_QUIT)
             running = false;
 
@@ -625,11 +557,11 @@ while (running)
                 case SDLK_v: chip8.keypad[0xF] = pressed; break;
             }
         }
-    }
+      }
 
-    chip8.cycle();
-    drawScreen(renderer, chip8.video);
 
+      chip8.cycle();
+      drawScreen(renderer, chip8.video);
 
         // 🔹 TIMERS (60Hz)
         auto now = std::chrono::high_resolution_clock::now();
